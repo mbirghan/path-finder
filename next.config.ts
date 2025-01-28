@@ -19,6 +19,8 @@ const nextConfig: NextConfig = {
   async rewrites() {
     return [
       {
+        // We do not need /py here but it is here to make sure that
+        // that we do not accidentally override the FastAPI routes
         source: "/api/py/:path*",
         destination:
           process.env.NODE_ENV === "development"
