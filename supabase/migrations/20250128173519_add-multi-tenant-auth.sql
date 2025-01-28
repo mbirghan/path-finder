@@ -94,24 +94,36 @@ stable
 as $$
 declare
   claims         jsonb;
-  user_tenant_id uuid;
+  user_organization_id uuid;
 begin
   select organization_id
-    into user_tenant_id
+    into user_organization_id
     from public.accounts
    where user_id = (event->>'user_id')::uuid
    limit 1;
 
   claims := event->'claims';
 
-  if user_tenant_id is not null then
-    claims := jsonb_set(claims, '{tenant_id}', to_jsonb(user_tenant_id));
+  if user_organization_id is not null then
+    claims := jsonb_set(claims, '{organization_id}', to_jsonb(user_organization_id));
   else
-    claims := jsonb_set(claims, '{tenant_id}', 'null');
+    claims := jsonb_set(claims, '{organization_id}', 'null');
   end if;
+  claims := jsonb_set(claims, '{testing}', '"testing"');
 
   event := jsonb_set(event, '{claims}', claims);
+
+  raise notice 'claims: %', claims;
 
   return event;
 end;
 $$;
+
+-- Grant access to function to supabase_auth_admin
+grant execute on function public.custom_access_token_hook to supabase_auth_admin;
+
+-- Grant access to schema to supabase_auth_admin
+grant usage on schema public to supabase_auth_admin;
+
+-- Revoke function permissions from authenticated, anon and public
+revoke execute on function public.custom_access_token_hook from authenticated, anon, public;
